@@ -1,3 +1,7 @@
+use std::error::Error as StdError;
+use std::fmt;
+use std::str::FromStr;
+
 /// 位置情報。.0から.1までの区間を表す
 /// たとえばLoc(4, 6)なら入力文字の5文字目から7文字目までの区間を表す(0始まり)
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -170,30 +174,25 @@ fn lex_rparen(input: &[u8], start: usize) -> Result<(Token, usize), LexError> {
     consume_byte(input, start, b')').map(|(_, end)| (Token::rparen(Loc(start, end)), end))
 }
 
-fn lex_number(input: &[u8], mut pos: usize) -> (Token, usize) {
+fn lex_number(input: &[u8], mut pos: usize) -> Result<(Token, usize), LexError> {
     use std::str::from_utf8;
+
     let start = pos;
-    // 入力に数字が続く限り位置を進める
-    while pos < input.len() && b"1234567890".contains(&input[pos]) {
-        pos += 1;
-    }
-    // 数字の列を数値に変換する
-    let n = from_utf8(&input[start..pos])
-        // start..posの構成からfrom_utf8は常に成功するためunwrapしても安全
+    // recognize_manyを使って数値を読み込む
+    let end = recognize_many(input, start, |b| b"1234567890".contains(&b));
+    let n = from_utf8(&input[start..end])
+        // start..endの構成からfrom_utf8は常に成功する
         .unwrap()
         .parse()
-        // 同じく構成からparseは常に成功する
+        // 同じく構成からfrom_utf8は常に成功するためunwrapしても安全
         .unwrap();
-    (Token::number(n, Loc(start, pos)), pos)
+    Ok((Token::number(n, Loc(start, end)), end))
 }
 
-fn skip_spaces(input: &[u8], mut pos: usize) -> ((), usize) {
+fn skip_spaces(input: &[u8], mut pos: usize) -> Result<((), usize), LexError> {
     // 入力に空白文字が続く限り位置を進める
-    while pos < input.len() && b" \n\t".contains(&input[pos]) {
-        pos += 1;
-    }
-    // そのまま空白を無視する
-    ((), pos)
+    let pos = recognize_many(input, pos, |b|  b" \n\t".contains(&b));
+    Ok(((), pos))
 }
 
 fn recognize_many(input: &[u8], mut pos: usize, mut f: impl FnMut(u8) -> bool) -> usize {
@@ -201,6 +200,23 @@ fn recognize_many(input: &[u8], mut pos: usize, mut f: impl FnMut(u8) -> bool) -
         pos += 1;
     }
     pos
+}
+
+#[test]
+fn test_lexer() {
+    assert_eq!(
+        lex("1 + 2 * 3 - -10"),
+        Ok(vec![
+            Token::number(1, Loc(0, 1)),
+            Token::plus(Loc(2, 3)),
+            Token::number(2, Loc(4, 5)),
+            Token::asterisk(Loc(6, 7)),
+            Token::number(3, Loc(8, 9)),
+            Token::minus(Loc(10, 11)),
+            Token::minus(Loc(12, 13)),
+            Token::number(10, Loc(13, 15)),
+        ])
+    )
 }
 
 fn main() {
