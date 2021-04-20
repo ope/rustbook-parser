@@ -329,6 +329,68 @@ fn parse_expr<Tokens>(tokens: &mut Peekable<Tokens>) -> Result<Ast, ParseError>
 //parse_exprは parse_expr3を呼ぶだけ
     parse_expr3(tokens)
 }
+fn parse_expr3<Tokens>(tokens: &mut Peekable<Tokens>) -> Result<Ast, ParseError>
+    where
+        Tokens: Iterator<Item = Token>,
+{
+// EXPR2をパースする
+    let mut e = parse_expr2(tokens)?;
+// EXPR3_Loop
+    loop {
+        match tokens.peek().map(|tok| tok.value) {
+// ("+" | "-")
+            Some(TokenKind::Plus) | Some(TokenKind::Minus) => {
+                let op = match tokens.next().unwrap() {
+                    Token {
+                        value: TokenKind::Plus,
+                        loc,
+                    } => BinOp::add(loc),
+                    Token {
+                        value: TokenKind::Minus,
+                        loc,
+                    } => BinOp::sub(loc),
+                    _ => unreachable!(),
+                };
+// EXPR2
+                let r = parse_expr2(tokens)?;
+// 位置情報やAST構築の処理
+                let loc = e.loc.merge(&r.loc);
+                e = Ast::binop(op, e, r, loc)
+// 次のイテレーションはEXPR3_Loop
+            }
+            // ε
+            _ => return Ok(e),
+        }
+    }
+}
+
+fn parse_expr2<Tokens>(tokens: &mut Peekable<Tokens>) -> Result<Ast, ParseError>
+    where
+        Tokens: Iterator<Item = Token>,
+{
+    let mut e = parse_expr1(tokens)?;
+    loop {
+        match tokens.peek().map(|tok| tok.value) {
+            Some(TokenKind::Asterisk) | Some(TokenKind::Slash) => {
+                let op = match tokens.next().unwrap() {
+                    Token {
+                        value: TokenKind::Asterisk,
+                        loc,
+                    } => BinOp::mult(loc),
+                    Token {
+                        value: TokenKind::Slash,
+                        loc,
+                    } => BinOp::div(loc),
+                    _ => unreachable!(),
+                };
+                let r = parse_expr1(tokens)?;
+                let loc = e.loc.merge(&r.loc);
+                e = Ast::binop(op, e, r, loc)
+            }
+            _ => return Ok(e),
+        }
+    }
+}
 
 use std::io;
 /// プロンプトを表示しユーザの入力を促す
