@@ -333,35 +333,25 @@ fn parse_expr3<Tokens>(tokens: &mut Peekable<Tokens>) -> Result<Ast, ParseError>
     where
         Tokens: Iterator<Item = Token>,
 {
-// EXPR2をパースする
-    let mut e = parse_expr2(tokens)?;
-// EXPR3_Loop
-    loop {
-        match tokens.peek().map(|tok| tok.value) {
-// ("+" | "-")
-            Some(TokenKind::Plus) | Some(TokenKind::Minus) => {
-                let op = match tokens.next().unwrap() {
-                    Token {
-                        value: TokenKind::Plus,
-                        loc,
-                    } => BinOp::add(loc),
-                    Token {
-                        value: TokenKind::Minus,
-                        loc,
-                    } => BinOp::sub(loc),
-                    _ => unreachable!(),
-                };
-// EXPR2
-                let r = parse_expr2(tokens)?;
-// 位置情報やAST構築の処理
-                let loc = e.loc.merge(&r.loc);
-                e = Ast::binop(op, e, r, loc)
-// 次のイテレーションはEXPR3_Loop
-            }
-            // ε
-            _ => return Ok(e),
-        }
+    // parse_left_binopに渡す関数を定義する
+    fn parse_expr3_op<Tokens>(tokens: &mut Peekable<Tokens>) -> Result<BinOp, ParseError>
+        where
+            Tokens: Iterator<Item = Token>,
+    {
+        let op = tokens
+            .peek()
+// イテレータの終わりは入力の終端なのでエラーを出す
+            .ok_or(ParseError::Eof)
+// エラーを返すかもしれない値をつなげる
+            .and_then(|tok| match tok.value {
+                TokenKind::Plus => Ok(BinOp::add(tok.loc.clone())),
+                TokenKind::Minus => Ok(BinOp::sub(tok.loc.clone())),
+                _ => Err(ParseError::NotOperator(tok.clone())),
+            })?;
+        tokens.next();
+        Ok(op)
     }
+    parse_left_binop(tokens, parse_expr2, parse_expr3_op)
 }
 
 fn parse_expr2<Tokens>(tokens: &mut Peekable<Tokens>) -> Result<Ast, ParseError>
@@ -390,6 +380,32 @@ fn parse_expr2<Tokens>(tokens: &mut Peekable<Tokens>) -> Result<Ast, ParseError>
             _ => return Ok(e),
         }
     }
+}
+fn parse_left_binop<Tokens>(
+    tokens: &mut Peekable<Tokens>,
+    subexpr_parser: fn(&mut Peekable<Tokens>) -> Result<Ast, ParseError>,
+    op_parser: fn(&mut Peekable<Tokens>) -> Result<BinOp, ParseError>,
+) -> Result<Ast, ParseError>
+    where
+        Tokens: Iterator<Item = Token>,
+{
+    let mut e = subexpr_parser(tokens)?;
+    loop {
+        match tokens.peek() {
+            Some(_) => {
+                let op = match op_parser(tokens) {
+                    Ok(op) => op,
+// ここでパースに失敗したのはこれ以上中置演算子がないという意味
+                    Err(_) => break,
+                };
+                let r = subexpr_parser(tokens)?;
+                let loc = e.loc.merge(&r.loc);
+                e = Ast::binop(op, e, r, loc)
+            }
+            _ => break,
+        }
+    }
+    Ok(e)
 }
 
 use std::io;
