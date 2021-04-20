@@ -219,6 +219,40 @@ fn test_lexer() {
     )
 }
 
+/// ASTを表すデータ型
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+enum AstKind {
+    /// 数値
+    Num(u64),
+    /// 単項演算
+    UniOp { op: UniOp, e: Box<Ast> },
+    /// 二項演算
+    BinOp { op: BinOp, l: Box<Ast>, r: Box<Ast> },
+}
+
+type Ast = Annot<AstKind>;
+// ヘルパメソッドを定義しておく
+impl Ast {
+    fn num(n: u64, loc: Loc) -> Self {
+// impl<T> Annot<T>で実装したnewを呼ぶ
+        Self::new(AstKind::Num(n), loc)
+    }
+    fn uniop(op: UniOp, e: Ast, loc: Loc) -> Self {
+        Self::new(AstKind::UniOp { op, e: Box::new(e) }, loc)
+    }
+    fn binop(op: BinOp, l: Ast, r: Ast, loc: Loc) -> Self {
+        Self::new(
+            AstKind::BinOp {
+                op,
+                l: Box::new(l),
+                r: Box::new(r),
+            },
+            loc,
+        )
+    }
+}
+
+
 use std::io;
 /// プロンプトを表示しユーザの入力を促す
 fn prompt(s: &str) -> io::Result<()> {
