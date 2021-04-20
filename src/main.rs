@@ -482,11 +482,12 @@ fn main() {
     let mut lines = stdin.lines();
     loop {
         prompt("> ").unwrap();
-        // ユーザの入力を取得する
         if let Some(Ok(line)) = lines.next() {
-            // 字句解析を行う
-            let token = lex(&line);
-            println!("{:?}", token);
+            let tokens = lex(&line).unwrap();
+// 字句解析した結果をパースし
+            let ast = parse(tokens).unwrap();
+// 出力する
+            println!("{:?}", ast);
         } else {
             break;
         }
