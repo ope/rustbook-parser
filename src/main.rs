@@ -149,13 +149,13 @@ fn consume_byte(input: &[u8], pos: usize, b: u8) -> Result<(u8, usize), LexError
 }
 
 fn lex_plus(input: &[u8], start: usize) -> Result<(Token, usize), LexError> {
-// Result::mapを使うことで結果が正常だった場合の処理を簡潔に書ける
-// これはこのコードと等価
-// ```
-// match consume_byte(input, start, b'+') {
-//     Ok((_, end)) => (Token::plus(Loc(start, end)), end),
+    // Result::mapを使うことで結果が正常だった場合の処理を簡潔に書ける
+    // これはこのコードと等価
+    // ```
+    // match consume_byte(input, start, b'+') {
+    //     Ok((_, end)) => (Token::plus(Loc(start, end)), end),
     //     Err(err) => Err(err),
-// }
+    // }
     consume_byte(input, start, b'+').map(|(_, end)| (Token::plus(Loc(start, end)), end))
 }
 fn lex_minus(input: &[u8], start: usize) -> Result<(Token, usize), LexError> {
@@ -191,7 +191,7 @@ fn lex_number(input: &[u8], mut pos: usize) -> Result<(Token, usize), LexError> 
 
 fn skip_spaces(input: &[u8], mut pos: usize) -> Result<((), usize), LexError> {
     // 入力に空白文字が続く限り位置を進める
-    let pos = recognize_many(input, pos, |b|  b" \n\t".contains(&b));
+    let pos = recognize_many(input, pos, |b| b" \n\t".contains(&b));
     Ok(((), pos))
 }
 
@@ -234,7 +234,7 @@ type Ast = Annot<AstKind>;
 // ヘルパメソッドを定義しておく
 impl Ast {
     fn num(n: u64, loc: Loc) -> Self {
-// impl<T> Annot<T>で実装したnewを呼ぶ
+        // impl<T> Annot<T>で実装したnewを呼ぶ
         Self::new(AstKind::Num(n), loc)
     }
     fn uniop(op: UniOp, e: Ast, loc: Loc) -> Self {
@@ -315,9 +315,9 @@ enum ParseError {
 use std::iter::Peekable;
 
 fn parse(tokens: Vec<Token>) -> Result<Ast, ParseError> {
-// 入力をイテレータにし、Peekableにする
+    // 入力をイテレータにし、Peekableにする
     let mut tokens = tokens.into_iter().peekable();
-// その後parse_exprを呼んでエラー処理をする
+    // その後parse_exprを呼んでエラー処理をする
     let ret = parse_expr(&mut tokens)?;
     match tokens.next() {
         Some(tok) => Err(ParseError::RedundantExpression(tok)),
@@ -325,26 +325,26 @@ fn parse(tokens: Vec<Token>) -> Result<Ast, ParseError> {
     }
 }
 fn parse_expr<Tokens>(tokens: &mut Peekable<Tokens>) -> Result<Ast, ParseError>
-    where
-        Tokens: Iterator<Item = Token>,
+where
+    Tokens: Iterator<Item = Token>,
 {
-//parse_exprは parse_expr3を呼ぶだけ
+    //parse_exprは parse_expr3を呼ぶだけ
     parse_expr3(tokens)
 }
 fn parse_expr3<Tokens>(tokens: &mut Peekable<Tokens>) -> Result<Ast, ParseError>
-    where
-        Tokens: Iterator<Item = Token>,
+where
+    Tokens: Iterator<Item = Token>,
 {
     // parse_left_binopに渡す関数を定義する
     fn parse_expr3_op<Tokens>(tokens: &mut Peekable<Tokens>) -> Result<BinOp, ParseError>
-        where
-            Tokens: Iterator<Item = Token>,
+    where
+        Tokens: Iterator<Item = Token>,
     {
         let op = tokens
             .peek()
-// イテレータの終わりは入力の終端なのでエラーを出す
+            // イテレータの終わりは入力の終端なのでエラーを出す
             .ok_or(ParseError::Eof)
-// エラーを返すかもしれない値をつなげる
+            // エラーを返すかもしれない値をつなげる
             .and_then(|tok| match tok.value {
                 TokenKind::Plus => Ok(BinOp::add(tok.loc.clone())),
                 TokenKind::Minus => Ok(BinOp::sub(tok.loc.clone())),
@@ -357,8 +357,8 @@ fn parse_expr3<Tokens>(tokens: &mut Peekable<Tokens>) -> Result<Ast, ParseError>
 }
 
 fn parse_expr2<Tokens>(tokens: &mut Peekable<Tokens>) -> Result<Ast, ParseError>
-    where
-        Tokens: Iterator<Item = Token>,
+where
+    Tokens: Iterator<Item = Token>,
 {
     let mut e = parse_expr1(tokens)?;
     loop {
@@ -388,8 +388,8 @@ fn parse_left_binop<Tokens>(
     subexpr_parser: fn(&mut Peekable<Tokens>) -> Result<Ast, ParseError>,
     op_parser: fn(&mut Peekable<Tokens>) -> Result<BinOp, ParseError>,
 ) -> Result<Ast, ParseError>
-    where
-        Tokens: Iterator<Item = Token>,
+where
+    Tokens: Iterator<Item = Token>,
 {
     let mut e = subexpr_parser(tokens)?;
     loop {
@@ -397,7 +397,7 @@ fn parse_left_binop<Tokens>(
             Some(_) => {
                 let op = match op_parser(tokens) {
                     Ok(op) => op,
-// ここでパースに失敗したのはこれ以上中置演算子がないという意味
+                    // ここでパースに失敗したのはこれ以上中置演算子がないという意味
                     Err(_) => break,
                 };
                 let r = subexpr_parser(tokens)?;
@@ -411,51 +411,51 @@ fn parse_left_binop<Tokens>(
 }
 // expr1
 fn parse_expr1<Tokens>(tokens: &mut Peekable<Tokens>) -> Result<Ast, ParseError>
-    where
-        Tokens: Iterator<Item = Token>,
+where
+    Tokens: Iterator<Item = Token>,
 {
     match tokens.peek().map(|tok| tok.value) {
         Some(TokenKind::Plus) | Some(TokenKind::Minus) => {
-// ("+" | "-")
+            // ("+" | "-")
             let op = match tokens.next() {
                 Some(Token {
-                         value: TokenKind::Plus,
-                         loc,
-                     }) => UniOp::plus(loc),
+                    value: TokenKind::Plus,
+                    loc,
+                }) => UniOp::plus(loc),
                 Some(Token {
-                         value: TokenKind::Minus,
-                         loc,
-                     }) => UniOp::minus(loc),
+                    value: TokenKind::Minus,
+                    loc,
+                }) => UniOp::minus(loc),
                 _ => unreachable!(),
             };
-// , ATOM
+            // , ATOM
             let e = parse_atom(tokens)?;
             let loc = op.loc.merge(&e.loc);
             Ok(Ast::uniop(op, e, loc))
         }
-// | ATOM
+        // | ATOM
         _ => parse_atom(tokens),
     }
 }
 // atom
 fn parse_atom<Tokens>(tokens: &mut Peekable<Tokens>) -> Result<Ast, ParseError>
-    where
-        Tokens: Iterator<Item = Token>,
+where
+    Tokens: Iterator<Item = Token>,
 {
     tokens
         .next()
         .ok_or(ParseError::Eof)
         .and_then(|tok| match tok.value {
-// UNUMBER
+            // UNUMBER
             TokenKind::Number(n) => Ok(Ast::new(AstKind::Num(n), tok.loc)),
-// | "(", EXPR3, ")" ;
+            // | "(", EXPR3, ")" ;
             TokenKind::LParen => {
                 let e = parse_expr(tokens)?;
                 match tokens.next() {
                     Some(Token {
-                             value: TokenKind::RParen,
-                             ..
-                         }) => Ok(e),
+                        value: TokenKind::RParen,
+                        ..
+                    }) => Ok(e),
                     Some(t) => Err(ParseError::RedundantExpression(t)),
                     _ => Err(ParseError::UnclosedOpenParen(tok)),
                 }
@@ -470,21 +470,23 @@ enum Error {
     Lexer(LexError),
     Parser(ParseError),
 }
+
 impl From<LexError> for Error {
     fn from(e: LexError) -> Self {
         Error::Lexer(e)
     }
 }
+
 impl From<ParseError> for Error {
     fn from(e: ParseError) -> Self {
         Error::Parser(e)
     }
 }
-use std::str::FromStr;
+
 impl FromStr for Ast {
     type Err = Error;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-// 内部では字句解析、構文解析の順に実行する
+        // 内部では字句解析、構文解析の順に実行する
         let tokens = lex(s)?;
         let ast = parse(tokens)?;
         Ok(ast)
@@ -500,6 +502,77 @@ fn prompt(s: &str) -> io::Result<()> {
     stdout.flush()
 }
 
+impl fmt::Display for TokenKind {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use self::TokenKind::*;
+        match self {
+            Number(n) => n.fmt(f),
+            Plus => write!(f, "+"),
+            Minus => write!(f, "-"),
+            Asterisk => write!(f, "*"),
+            Slash => write!(f, "/"),
+            LParen => write!(f, "("),
+            RParen => write!(f, ")"),
+        }
+    }
+}
+
+impl fmt::Display for Loc {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}-{}", self.0, self.1)
+    }
+}
+
+impl fmt::Display for LexError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use self::LexErrorKind::*;
+        let loc = &self.loc;
+        match self.value {
+            InvalidChar(c) => write!(f, "{}: invalid char '{}'", loc, c),
+            Eof => write!(f, "End of file"),
+        }
+    }
+}
+impl fmt::Display for ParseError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use self::ParseError::*;
+        match self {
+            UnexpectedToken(tok) => write!(f, "{}: {} is not expected", tok.loc, tok.value),
+            NotExpression(tok) => write!(
+                f,
+                "{}: '{}' is not a start of expression",
+                tok.loc, tok.value
+            ),
+            NotOperator(tok) => write!(f, "{}: '{}' is not an operator", tok.loc, tok.value),
+            UnclosedOpenParen(tok) => write!(f, "{}: '{}' is not closed", tok.loc, tok.value),
+            RedundantExpression(tok) => write!(
+                f,
+                "{}: expression after '{}' is redundant",
+                tok.loc, tok.value
+            ),
+            Eof => write!(f, "End of file"),
+        }
+    }
+}
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "parser error")
+    }
+}
+
+// Errorデータ型と名前が重複するStdErrorとして導入
+impl StdError for LexError {}
+impl StdError for ParseError {}
+impl StdError for Error {
+    fn source(&self) -> Option<&(dyn StdError + 'static)> {
+        use self::Error::*;
+        match self {
+            Lexer(lex) => Some(lex),
+            Parser(parse) => Some(parse),
+        }
+    }
+}
+
 fn main() {
     use std::io::{stdin, BufRead, BufReader};
     let stdin = stdin();
@@ -512,10 +585,17 @@ fn main() {
             let ast = match line.parse::<Ast>() {
                 Ok(ast) => ast,
                 Err(e) => {
-                    unimplemented!()
+                    eprintln!("{}", e);
+                    let mut source = e.source();
+                    // sourceをすべてたどって表示する
+                    while let Some(e) = source {
+                        eprintln!("caused by {}", e);
+                        source = e.source()
+                    }
+                    continue;
                 }
-             };
-             println!("{:?}", ast);
+            };
+            println!("{:?}", ast);
         } else {
             break;
         }
@@ -524,7 +604,7 @@ fn main() {
 
 #[test]
 fn test_parser() {
-// 1 + 2 * 3 - -10
+    // 1 + 2 * 3 - -10
     let ast = parse(vec![
         Token::number(1, Loc(0, 1)),
         Token::plus(Loc(2, 3)),
