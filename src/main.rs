@@ -507,13 +507,15 @@ fn main() {
     let stdin = BufReader::new(stdin);
     let mut lines = stdin.lines();
     loop {
-        prompt("> ").unwrap();
+        //prompt("> ").unwrap();
         if let Some(Ok(line)) = lines.next() {
-            let tokens = lex(&line).unwrap();
-// 字句解析した結果をパースし
-            let ast = parse(tokens).unwrap();
-// 出力する
-            println!("{:?}", ast);
+            let ast = match line.parse::<Ast>() {
+                Ok(ast) => ast,
+                Err(e) => {
+                    unimplemented!()
+                }
+             };
+             println!("{:?}", ast);
         } else {
             break;
         }
