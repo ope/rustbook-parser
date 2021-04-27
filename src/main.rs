@@ -690,6 +690,7 @@ impl StdError for InterpreterError {
     }
 }
 
+// InterpreterError
 impl InterpreterError {
     fn show_diagnostic(&self, input: &str) {
         // エラー情報を簡単に表示し
